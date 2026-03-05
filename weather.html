@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <title>산불 대응을 위한 자원 예측 프로그램</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 1.2em;
+    }
+
+    body {
+      font-family: 'Pretendard Variable', sans-serif;
+      display: flex;
+      height: 100vh;
+      background-color: #292626;
+      color: #fff;
+
+    }
+
+    body {
+      animation: pageFade 2s ease-out;
+    }
+
+    @keyframes pageFade {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+
+    .left {
+      width: 65%;
+      padding: 30px;
+      overflow-y: auto;
+    }
+
+    .right {
+      width: 35%;
+      padding: 13px 15px;
+    }
+
+    input[type="text"] {
+      width: 80%;
+      padding: 10px;
+      border-radius: 6px;
+      border: none;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .submit-btn {
+      position: relative;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #F39C12;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      margin-left: 10px;
+      cursor: pointer;
+      overflow: visible;
+    }
+
+    .submit-btn :hover {
+      background-color: #F4A261;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .tooltip {
+      background: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      padding: 5px 8px;
+      border-radius: 5px;
+      font-size: 13px;
+      white-space: pre-line;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .grid-box {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .card {
+      background: #1f1f1f;
+      border-radius: 12px;
+      padding: 20px 24px;
+      border: 1px solid #444;
+      color: #eee;
+      font-size: 20px;
+      white-space: pre-wrap;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      border-bottom: 1px solid #555;
+      padding-bottom: 4px;
+    }
+
+    .card {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInCard 0.6s ease-out forwards;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .card:nth-child(1) {
+      animation-delay: 2s;
+    }
+
+    .card:nth-child(2) {
+      animation-delay: 2.2s;
+    }
+
+    .card:nth-child(3) {
+      animation-delay: 2.4s;
+    }
+
+    .card:nth-child(4) {
+      animation-delay: 2.6s;
+    }
+
+
+
+    @keyframes fadeInCard {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      /* 모서리 둥글게 */
+      overflow: hidden;
+      /* 둥근 영역 밖 그림자를 숨기기 위함 */
+    }
+
+    /* 애니메이션 키프레임 정의 */
+    /* 슬라이드+페이드 인 키프레임 */
+    @keyframes slideDownFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+
+    /* 공통 애니메이션 스타일 */
+    .slide-in {
+      opacity: 0;
+      animation: slideDownFadeIn 0.9s ease-out forwards;
+    }
+
+
+    /* 첫 줄: 바로 시작 */
+    .line1 {
+      animation-delay: 0s;
+    }
+
+    /* 둘째 줄: 약간 늦게 */
+    .line2 {
+      animation-delay: 0.7s;
+    }
+
+    h1 {
+      margin-bottom: 1.2rem;
+      color: #e0e0e0;
+    }
+
+    h1 .line1 {
+      font-size: 2rem;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    h1 .line2 {
+      font-size: 2.7rem;
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+      margin-top: 0.4rem;
+    }
+
+    h1::after {
+      content: "";
+      display: inline-block;
+      width: 80px;
+      height: 2px;
+      background-color: #444;
+      margin-left: 12px;
+      vertical-align: middle;
+    }
+
+    form {
+      margin-top: 0.8rem;
+      margin-bottom: 25px;
+      /* 추가 */
+    }
+
+
+    .line3 {
+      animation-delay: 1.2s;
+    }
+
+    /* 맵 오른쪽 상단에 고정되게 설정 */
+    .ol-zoom {
+      top: 10px !important;
+      right: 10px !important;
+      left: auto !important;
+      position: absolute !important;
+      z-index: 9999;
+    }
+
+    /* 버튼 스타일은 기본 유지하되 크기 조정 가능 */
+    .ol-control button {
+      background-color: #fff;
+      border: none;
+      color: #000;
+      width: 32px;
+      height: 32px;
+      font-size: 18px;
+      font-weight: bold;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      /* 살짝 뜨는 효과 */
+    }
+
+    .ol-control button:hover {
+      background-color: #f0f0f0;
+    }
+
+    /* 오른쪽 상단 고정 */
+    .ol-zoom {
+      top: 12px !important;
+      right: 12px !important;
+      left: auto !important;
+      position: absolute !important;
+      z-index: 1000;
+    }
+
+    /* 줌 버튼 디자인 */
+    .ol-control button {
+      background-color: rgba(255, 255, 255, 0.8);
+      /* 반투명 흰색 */
+      border: none;
+      color: #333;
+      width: 36px;
+      height: 36px;
+      font-size: 20px;
+      font-weight: bold;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    /* 호버 효과 */
+    .ol-control button:hover {
+      background-color: rgba(255, 255, 255, 1);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+    }
+
+    .ol-rotate {
+      display: none !important;
+    }
+
+    .card-table {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      row-gap: 6px;
+      column-gap: 12px;
+      font-size: 15px;
+    }
+
+    .card-table .label {
+      color: #999;
+    }
+
+    .card-table .value {
+      font-weight: 500;
+      color: #eee;
+    }
+
+    .predict-table {
+      display: flex;
+      justify-content: center;
+      /* 수평 중앙 정렬 */
+      gap: 80px;
+      /* 인력 vs 헬기 간 간격 */
+      margin-top: 40px;
+    }
+
+    .predict-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      /* 수직축 요소들 가운데 정렬 */
+      justify-content: center;
+      gap: 2px;
+      margin: 0;
+      /* 위아래 마진 제거 */
+    }
+
+    .predict-col .icon {
+      width: 32px;
+      height: 32px;
+      opacity: 0.9;
+      margin-top: 0px;
+    }
+
+    .predict-col .label {
+      font-size: 15px;
+      color: #ccc;
+      margin-bottom: 0px;
+    }
+
+    .predict-col .value {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-top: 0px;
+      /* 기존에 있던 여백 제거 */
+      color: #fff;
+    }
+
+    .grid-box {
+      gap: 12px;
+      /* 15px → 12px 혹은 10px 등 조절 */
+    }
+
+    .resource-grid {
+      display: flex;
+      justify-content: center;
+      gap: 80px;
+      padding-top: 40px;
+      padding-bottom: 8px;
+      text-align: center;
+    }
+
+    .resource-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .resource-icon {
+      width: 34px;
+      height: 34px;
+      margin-bottom: 4px;
+    }
+
+    .resource-label {
+      font-size: 15px;
+      color: #ddd;
+    }
+
+    .resource-value {
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+
+    #person-count {
+      color: #ff6b6b;
+    }
+
+    .resource-icon {
+      width: 32px;
+      height: 32px;
+      filter: brightness(5);
+      /* 밝기 증가 */
+      opacity: 0.9;
+    }
+
+    .fade-again {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInCard 0.6s ease-out forwards;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="left">
+    <div class="title-container">
+      <h1>
+        <div class="slide-in line1">산불 대응을 위한</div>
+        <div class="slide-in line2">자원 예측 프로그램</div>
+      </h1>
+    </div>
+    <form class="slide-in line3" onsubmit="fetchWeather(); return false;">
+      <h2 style="color: #F39C12; font-size: 1.2rem">신고 위치 입력</h2>
+      <input type="text" id="address" placeholder="예) 서울 종로구 명륜3길 35-22">
+      <button type="submit" class="submit-btn">확인</button>
+    </form>
+    <div class="grid-box">
+      <div class="card danger-card" id="predictBox">예상 동원 자원</div>
+      <div class="card" id="weatherBox">실시간 기상</div>
+      <div class="card" id="similarBox">유사 사례</div>
+      <div class="card" id="strategyBox">대응 전략</div>
+    </div>
+  </div>
+  <div class="right">
+    <div id="map"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/ol@v7.4.0/dist/ol.js"></script>
+  <script>
+    let map, markerLayer, tooltipOverlay;
+
+    function initMap() {
+      markerLayer = new ol.layer.Vector({ source: new ol.source.Vector() });
+      const tooltip = document.createElement('div');
+      tooltip.className = 'tooltip';
+      document.body.appendChild(tooltip);
+
+      tooltipOverlay = new ol.Overlay({
+        element: tooltip,
+        positioning: 'bottom-center',
+        offset: [0, -10],
+        stopEvent: false
+      });
+
+      map = new ol.Map({
+        target: 'map',
+        layers: [
+          new ol.layer.Tile({
+            source: new ol.source.XYZ({
+              url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief/default/2020-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg'
+            })
+          }),
+          markerLayer
+        ],
+        overlays: [tooltipOverlay],
+        view: new ol.View({
+          center: ol.proj.fromLonLat([126.978, 37.5665]),
+          zoom: 8
+        })
+      });
+
+      map.on('pointermove', function (evt) {
+        const feature = map.forEachFeatureAtPixel(evt.pixel, f => f);
+        if (feature && feature.get('info')) {
+          tooltip.innerText = feature.get('info');
+          tooltip.style.display = 'block';
+          tooltipOverlay.setPosition(evt.coordinate);
+        } else {
+          tooltip.style.display = 'none';
+        }
+      });
+    }
+
+    function addMarker(lon, lat) {
+      if (!map || !markerLayer) return;
+      markerLayer.getSource().clear();
+      const marker = new ol.Feature({
+        geometry: new ol.geom.Point(ol.proj.fromLonLat([lon, lat])),
+        info: `위도: ${lat.toFixed(5)}\n경도: ${lon.toFixed(5)}`
+      });
+      marker.setStyle(new ol.style.Style({
+        text: new ol.style.Text({
+          text: '🔥', font: '24px sans-serif', scale: 1,
+          textAlign: 'center', textBaseline: 'middle', offsetY: -12
+        })
+      }));
+      markerLayer.getSource().addFeature(marker);
+      map.getView().animate({
+        center: ol.proj.fromLonLat([lon, lat]),
+        zoom: 10,
+        duration: 1000  // 1초간 부드럽게 이동
+      });
+
+    }
+
+    async function fetchWeather() {
+      const address = document.getElementById("address").value;
+      if (!address) return alert("주소를 입력해주세요");
+
+      try {
+        const res = await fetch("/weather", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address })
+        });
+        const data = await res.json();
+
+        if (data.error) return alert(data.error);
+        const lat = parseFloat(data.lat);
+        const lon = parseFloat(data.lon);
+        if (!isNaN(lat) && !isNaN(lon)) addMarker(lon, lat);
+
+        const pred = await fetch("http://localhost:5001/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            "현장소방서거리": data["소방서거리_km"],
+            "현장안전센터거리": data["안전센터거리_km"],
+            "최대풍속": data["날씨"]["풍속"],
+            "온도": data["날씨"]["온도"],
+            "습도": data["날씨"]["습도"]
+          })
+        });
+        const predResult = await pred.json()
+
+        const resultText = predResult.result || "";
+
+        const elevationValue = parseFloat(data["고도"]);
+
+        const weatherMatch = resultText.match(/습도: (\d+)%.*?온도: (\d+)°C.*?풍속.*?(\d+)m\/s/);
+        if (weatherMatch) {
+          const [_, 습도, 온도, 풍속] = weatherMatch;
+          //기상 정보 3
+          document.getElementById("weatherBox").innerHTML = `
+            <div class="card-title">실시간 기상</div>
+            <div class="card-table">
+              <div class="label">온도</div><div class="value">${온도}°C</div>
+              <div class="label">습도</div><div class="value">${습도}%</div>
+              <div class="label">풍속</div><div class="value">${풍속}m/s</div>
+              <div class="label">풍향</div><div class="value">${data["날씨"]["풍향"]}°</div>
+              <div class="label">고도</div><div class="value">${elevationValue.toFixed(2)}m</div>
+              <div class="label">소방서</div><div class="value">${data["소방서"]} (${data["소방서거리_km"]}km)</div>
+              <div class="label">안전센터</div><div class="value">${data["안전센터"]} (${data["안전센터거리_km"]}km)</div>
+            </div>
+          `;
+
+        }
+
+        const similarity = Array.from(resultText.matchAll(/유사 사례 #(\d+)[\s\S]*?(\d{8}), (.*?) 산불[\s\S]*?총 동원 인력수: (\d+)명/g));
+        if (similarity.length >= 2) {
+          const [c1, c2] = similarity;
+          //유사 사례 4
+          document.getElementById("similarBox").innerHTML =
+            `<div class="card-title">유사 사례</div>` +
+            `#1: ${c1[3]} 산불 (${c1[2]} 발생) – ${c1[4]}명 투입<br>` +
+            `#2: ${c2[3]} 산불 (${c2[2]} 발생) – ${c2[4]}명 투입`;
+
+        }
+        const helicopterText = elevationValue >= 175 ? '권장' : '불필요';
+        const helicopterColor = elevationValue >= 175 ? '#4DD0E1' : '#aaa';
+
+        const predictMatch = resultText.match(/예상 동원 인력: (-?\d+)명.*?(\d+)~(\d+)명/);
+        if (predictMatch) {
+          const [_, 예측원래값, 최소, 최대] = predictMatch;
+          const 평균 = Math.round((parseInt(최소) + parseInt(최대)) / 2);
+
+          // 위험도에 따라 카드 강조
+          const card = document.getElementById("predictBox");
+          card.classList.remove("danger-card");
+          if (평균 >= 100) card.classList.add("danger-card");
+
+          // HTML 출력
+          card.innerHTML = `
+          <div class="card-title">예상 동원 자원</div>
+          <div class="resource-grid">
+            <div class="resource-item">
+              <img src="/static/person.svg" class="resource-icon" alt="인력 아이콘">
+              <div class="resource-label">인력</div>
+              <div class="resource-value" style="color:#ff6b6b" id="person-count">${평균}명</div>
+            </div>
+            <div class="resource-item">
+              <img src="/static/helicopter.svg" class="resource-icon" alt="헬기 아이콘">
+              <div class="resource-label">헬기</div>
+              <div class="resource-value" id="heli-status">${helicopterText}</div>
+            </div>
+          </div>
+        `;
+        }
+
+        //대응전략 2
+        let strategyText = `
+        <div class="card-title">대응 전략</div>
+        ${data["날씨"]["반대풍향"]}°방향으로 인력 투입
+      `;
+
+
+        if (!isNaN(elevationValue)) {
+          strategyText += elevationValue >= 175
+            ? `🚁 <span class="highlight">신고 위치 고도 ${elevationValue.toFixed(2)}m → 헬기 투입 권장</span>`
+            : `⛰ 신고 위치 고도 ${elevationValue.toFixed(2)}m → 헬기 불필요`;
+        }
+        document.getElementById("strategyBox").innerHTML = strategyText;
+        retriggerFadeIn();
+
+      } catch (err) {
+        alert("예기치 못한 오류 발생: " + err);
+        console.error(err);
+      }
+    }
+
+    function retriggerFadeIn() {
+      const cards = document.querySelectorAll('.card');
+      cards.forEach((card, index) => {
+        card.style.animation = 'none';
+        void card.offsetHeight;
+
+        // 각 카드마다 300ms씩 딜레이 적용
+        card.style.animation = `fadeInCard 1.2s ease-out ${index * 0.3}s forwards`;
+      });
+    }
+
+
+
+
+    window.onload = initMap;
+
+  </script>
+</body>
+
+</html>

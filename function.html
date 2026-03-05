@@ -1,0 +1,85 @@
+  
+
+  //강원 횡성군 강림면 태종로부곡5길 197
+
+  
+  async function fetchWeather() {
+  const address = document.getElementById("address").value;
+  if (!address) return alert("주소를 입력해주세요");
+
+  try {
+  const res = await fetch("/weather", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ address })
+  });
+  const data = await res.json();
+
+  if (data.error) return alert(data.error);
+  const lat = parseFloat(data.lat);
+  const lon = parseFloat(data.lon);
+  if (!isNaN(lat) && !isNaN(lon)) addMarker(lon, lat);
+
+  const pred = await fetch("http://localhost:5001/predict", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+  "현장소방서거리": data["소방서거리_km"],
+  "현장안전센터거리": data["안전센터거리_km"],
+  "최대풍속": data["날씨"]["풍속"],
+  "온도": data["날씨"]["온도"],
+  "습도": data["날씨"]["습도"]
+  })
+  });
+  const predResult = await pred.json()
+
+  const resultText = predResult.result || "";
+
+  const weatherMatch = resultText.match(/습도: (\d+)%.*?온도: (\d+)°C.*?풍속.*?(\d+)m\/s/);
+  if (weatherMatch) {
+  const [_, 습도, 온도, 풍속] = weatherMatch;
+  document.getElementById("weatherBox").innerText = `⭐ 위치 정보\n\n습도: ${습도}%\n온도: ${온도}°C\n풍속: ${풍속}m/s \n풍향:
+  ${data["날씨"]["풍향"]}° \n소방서: ${data["소방서"]}\n소방서거리: ${data["소방서거리_km"]}km\n현장안전센터: ${data["안전센터"]}\n현장안전센터거리:
+  ${data["안전센터거리_km"]}km\n고도: ${data["고도"]}m`;
+  }
+
+  const similarity = Array.from(resultText.matchAll(/유사 사례 #(\d+)[\s\S]*?(\d{8}), (.*?) 산불[\s\S]*?총 동원 인력수: (\d+)명/g));
+  if (similarity.length >= 2) {
+  const [c1, c2] = similarity;
+  document.getElementById("similarBox").innerText =
+  `🧾 유사 사례\n\n` +
+  `#1: ${c1[3]} 산불 (${c1[2]} 발생) - ${c1[4]}명\n` +
+  `#2: ${c2[3]} 산불 (${c2[2]} 발생) - ${c2[4]}명`;
+  }
+
+
+  const predictMatch = resultText.match(/예상 동원 인력: (-?\d+)명.*?(\d+)~(\d+)명/);
+  if (predictMatch) {
+  const [_, 예측원래값, 최소, 최대] = predictMatch;
+  const 평균 = Math.round((parseInt(최소) + parseInt(최대)) / 2);
+  document.getElementById("predictBox").innerText =
+  `👷 예상 동원 인력\n\n예측: ${평균}명\n범위: ${최소}~${최대}명`;
+  }
+
+
+  let strategyText = `🛠️ 대응 전략\n\n` +
+  `바람이 불어가는 방향 (정반대 풍향): ${data["날씨"]["반대풍향"]}° 방향으로 인력 투입!`;
+  const elevationValue = parseFloat(data["고도"]);
+  if (!isNaN(elevationValue)) {
+  if (elevationValue >= 175) {
+  strategyText += `\n고도 ${elevationValue.toFixed(2)}m → 헬기 투입 권장`;
+  } else {
+  strategyText += `\n고도 ${elevationValue.toFixed(2)}m → 헬기 투입 불필요`;
+  }
+  }
+
+  document.getElementById("strategyBox").innerText = strategyText;
+
+  } catch (err) {
+  alert("예기치 못한 오류 발생: " + err);
+  console.error(err);
+  }
+  }
+
+  window.onload = initMap;
+  
