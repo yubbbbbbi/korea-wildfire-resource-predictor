@@ -13,8 +13,7 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 app = Flask(__name__)
 CORS(app)
 
-KAKAO_REST_API_KEY = "a9d8df87e3d54c86fad734a2532b0ff5"
-
+KAKAO_REST_API_KEY = os.getenv("KAKAO_REST_API_KEY")
 @app.route('/')
 def index():
     return send_file('weather.html')
@@ -67,14 +66,14 @@ def dfs_xy_conv(lat, lon):
     return x, y
 
 def fetch_weather_data(lat, lon):
-    service_key = "QR5BO3GIlFO4ITNfN%2F%2FLGttv5WnX7l9P%2FLQWPGtmLrAnbQP%2BSblhL9QOVGB1pcsamPoJQ9EmHeYTEVDNX87OFg%3D%3D"
+    KMA_SERVICE_KEY = os.getenv("KMA_SERVICE_KEY")
     now = datetime.now()
     base_time = (now - timedelta(hours=1)).strftime('%H00')
     base_date = now.strftime('%Y%m%d')
     x, y = dfs_xy_conv(lat, lon)
     url = (
         f"http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst"
-        f"?serviceKey={service_key}&numOfRows=1000&pageNo=1&"
+        f"?serviceKey={KMA_SERVICE_KEY}&numOfRows=1000&pageNo=1&"
         f"dataType=JSON&base_date={base_date}&base_time={base_time}&nx={x}&ny={y}"
     )
     res = requests.get(url)
